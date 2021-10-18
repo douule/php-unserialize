@@ -109,34 +109,14 @@ just put the result on the cookie part
 
 web256
 -
-
-web264
--
 ```php
-error_reporting(0);
-session_start();
 
-class message{
-    public $from;
-    public $msg;
-    public $to;
-    public $token='user';
-    public function __construct($f,$m,$t){
-        $this->from = $f;
-        $this->msg = $m;
-        $this->to = $t;
-    }
-}
 
-$f = $_GET['f'];
-$m = $_GET['m'];
-$t = $_GET['t'];
-
-if(isset($f) && isset($m) && isset($t)){
-    $msg = new message($f,$m,$t);
-    $umsg = str_replace('fuck', 'love
 
 ```
+
+
+
 
 web 262
 -
@@ -218,6 +198,9 @@ Tzo3OiJtZXNzYWdlIjo0OntzOjQ6ImZyb20iO2k6MTtzOjM6Im1zZyI7aToxO3M6MjoidG8iO3M6MTM1
 考点：反序列化字符串逃逸，字符串逃逸我会总结在另一个位置
 打完后访问message.php就OK了
 
+
+
+
 web264
 -
 ```php
@@ -274,6 +257,9 @@ if(isset($_COOKIE['msg'])){
 和web262里面的payload的一样只不过多设了个cookie
 it have no diffierent to web 262,dont forget set up a cookie.
 
+
+
+
 web265
 -
 ```php
@@ -316,3 +302,4 @@ echo serialize($a);
 ```
 考点php地址传参
 
+这个考点在红明谷2021的writeshell中也遇到了
