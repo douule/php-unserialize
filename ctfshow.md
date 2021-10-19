@@ -306,6 +306,7 @@ echo serialize($a);
 这个考点在红明谷2021的writeshell中也遇到了
 
 web266
+-
 
 ```php
 
